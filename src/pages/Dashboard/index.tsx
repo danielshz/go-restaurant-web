@@ -27,7 +27,9 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      // TODO LOAD FOODS
+      const response = await api.get('/foods');
+
+      setFoods(response.data);
     }
 
     loadFoods();
@@ -37,7 +39,14 @@ const Dashboard: React.FC = () => {
     food: Omit<IFoodPlate, 'id' | 'available'>,
   ): Promise<void> {
     try {
-      // TODO ADD A NEW FOOD PLATE TO THE API
+      const response = await api.post('/foods', {
+        ...food,
+        available: true,
+      });
+
+      console.log(response);
+
+      setFoods([...foods, response.data]);
     } catch (err) {
       console.log(err);
     }
@@ -46,11 +55,30 @@ const Dashboard: React.FC = () => {
   async function handleUpdateFood(
     food: Omit<IFoodPlate, 'id' | 'available'>,
   ): Promise<void> {
-    // TODO UPDATE A FOOD PLATE ON THE API
+    console.log(editingFood);
+    const { id, available } = editingFood;
+
+    if (!editingFood.id) return;
+
+    const updatedFood = { ...food, id, available };
+
+    console.log(editingFood);
+    console.log(updatedFood);
+
+    setFoods([
+      ...foods.filter(foundFood => foundFood.id !== editingFood.id),
+      updatedFood,
+    ]);
+
+    await api.put(`/foods/${updatedFood.id}`, updatedFood);
   }
 
   async function handleDeleteFood(id: number): Promise<void> {
-    // TODO DELETE A FOOD PLATE FROM THE API
+    const filteredFoods = foods.filter(food => food.id !== id);
+
+    setFoods(filteredFoods);
+
+    await api.delete(`/foods/${id}`);
   }
 
   function toggleModal(): void {
@@ -61,8 +89,24 @@ const Dashboard: React.FC = () => {
     setEditModalOpen(!editModalOpen);
   }
 
-  function handleEditFood(food: IFoodPlate): void {
-    // TODO SET THE CURRENT EDITING FOOD ID IN THE STATE
+  async function handleEditFood(food: IFoodPlate): Promise<void> {
+    const targetFood = foods.find(foundFood => foundFood.id === food.id);
+
+    if (!targetFood) return;
+
+    if (targetFood.available === food.available) {
+      setEditingFood(food);
+      toggleEditModal();
+    } else {
+      const newFoods = [
+        ...foods.filter(foundFood => foundFood.id !== food.id),
+        food,
+      ].sort((foodA, foodB) => (foodA.id < foodB.id ? 1 : -1));
+
+      setFoods(newFoods);
+
+      await api.put(`/foods/${food.id}`, food);
+    }
   }
 
   return (
